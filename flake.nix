@@ -27,6 +27,20 @@
           options.services.mbta2mqtt = {
             enable = mkEnableOption "Enables the mbta2mqtt service";
 
+            user = mkOption {
+              type = types.str;
+              default = "mbta2mqtt";
+              example = "mbta2mqtt";
+              description = "User running mbta2mqtt service";
+            };
+
+            group = mkOption {
+              type = types.str;
+              default = "mbta2mqtt";
+              example = "mbta2mqtt";
+              description = "Group running mbta2mqtt service";
+            };
+
             environmentFile = mkOption {
               type = types.nullOr types.path;
               default = null;
@@ -147,22 +161,21 @@
           };
 
           config = mkIf cfg.enable {
+            users = {
+              users = {
+                mbta2mqtt = mkIf (cfg.user == "mbta2mqtt") {
+                  isSystemUser = true;
+                  group = cfg.group;
+                };
+              };
+              groups = {
+                ${cfg.group} = { };
+              };
+            };
+            
             environment.etc = lib.mkMerge [
               (lib.mkIf (cfg.settings != null) {
                 "mbta2mqtt/mbta2mqtt.conf".source = configFile;
-              })
-
-              (lib.mkIf (cfg.settings != null) {
-                "logrotate.d/mbta2mqtt".text = ''
-                  /var/log/mbta2mqtt/mbta2mqtt.log {
-                    daily
-                    rotate 7
-                    compress
-                    missingok
-                    notifempty
-                    create 0640 root adm
-                  }
-                '';
               })
             ];
 
@@ -170,18 +183,15 @@
               wantedBy = [ "multi-user.target" ];
 
               serviceConfig = {
+                User = cfg.user;
+                Group = cfg.group;
                 ExecStart = "${pkg}/bin/mbta2mqtt";
-                DynamicUser = "yes";
-                StandardOutput = "append:/var/log/mbta2mqtt/mbta2mqtt.log";
-                StandardError = "append:/var/log/mbta2mqtt/mbta2mqtt.log";
+                LogsDirectory = "mbta2mqtt";
+                LogsDirectoryMode = "0755";
                 Restart = "on-failure";
                 EnvironmentFile = lib.optional (cfg.environmentFile != null) cfg.environmentFile;
               };
             };
-
-            systemd.tmpfiles.rules = [
-              "d /var/log/mbta2mqtt 0755 root root -"
-            ];
           };
         };
   };
