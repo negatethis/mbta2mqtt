@@ -58,7 +58,7 @@
                       description = "A list of stop IDs to monitor";
                     };
                     include = mkOption {
-                      type = types.str;
+                      type = types.listOf types.str;
                       default = [ "schedule"
                                   "stop"
                                   "stop.connecting_stops"
