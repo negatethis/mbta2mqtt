@@ -57,6 +57,58 @@
                       '';
                       description = "A list of stop IDs to monitor";
                     };
+                    include = mkOption {
+                      type = types.str;
+                      default = [ "schedule"
+                                  "stop"
+                                  "stop.connecting_stops"
+                                  "stop.child_stops"
+                                  "stop.parent_station"
+                                  "route"
+                                  "route.alerts"
+                                  "route.line"
+                                  "route.route_patterns.representative_trip.shape"
+                                  "trip"
+                                  "trip.shape"
+                                  "trip.service"
+                                  "trip.stops"
+                                  "trip.alerts"
+                                  "trip.occupancies"
+                                  "trip.route_pattern.representative_trip.shape"
+                                  "vehicle"
+                                  "vehicle.route"
+                                  "vehicle.trip"
+                                  "vehicle.stop"
+                                  "alerts"
+                                  "alerts.facilities" ];
+                      example = ''
+                        [ "schedule
+                          "stop"
+                          "stop.connecting_stops"
+                          "stop.child_stops"
+                          "stop.parent_station"
+                          "route"
+                          "route.alerts"
+                          "route.line"
+                          "route.route_patterns.representative_trip.shape"
+                          "trip"
+                          "trip.shape"
+                          "trip.service"
+                          "trip.stops"
+                          "trip.alerts"
+                          "trip.occupancies"
+                          "trip.route_pattern.representative_trip.shape"
+                          "vehicle"
+                          "vehicle.route"
+                          "vehicle.trip"
+                          "vehicle.stop"
+                          "alerts"
+                          "alerts.facilities" ]
+                      '';
+                      description = ''
+                        Relationships to include in MBTA predictions.
+                      '';
+                    };
                   };
                   mqtt = {
                     host = mkOption {
