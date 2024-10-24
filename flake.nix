@@ -27,6 +27,17 @@
           options.services.mbta2mqtt = {
             enable = mkEnableOption "Enables the mbta2mqtt service";
 
+            environmentFile = mkOption {
+              type = types.nullOr types.path;
+              default = null;
+              example = "/run/keys/secrets.env";
+              description = ''
+                An environment file as defined in {manpage}`systemd.exec(5)`.
+
+                This should be used to store secrets, such as your API key or MQTT broker password, and then pass the environment variables to mbta2mqtt by setting a configuration value to !ENV <MY_SECRET>.
+              '';
+            };
+
             settings = mkOption {
               type = types.nullOr (types.submodule {
                 freeformType = format.type;
@@ -107,12 +118,13 @@
               wantedBy = [ "multi-user.target" ];
 
               serviceConfig = {
-                Restart = "on-failure";
-                WorkingDirectory = "${pkg}/bin";
                 ExecStart = "${pkg}/bin/mbta2mqtt";
+                DynamicUser = "yes";
+                WorkingDirectory = "${pkg}/bin";
                 StandardOutput = "append:/var/log/mbta2mqtt/mbta2mqtt.log";
                 StandardError = "append:/var/log/mbta2mqtt/mbta2mqtt.log";
-                DynamicUser = "yes";
+                Restart = "on-failure";
+                EnvironmentFile = lib.optional (cfg.environmentFile != null) cfg.environmentFile;
               };
             };
 
