@@ -11,6 +11,7 @@ from yaml_env_tag import construct_env_tag
 import paho.mqtt.client as mqtt
 import threading
 from mergedeep import merge,Strategy
+import ssl
 
 VERSION='0.1.0'
 
@@ -107,24 +108,9 @@ def main():
     logging.debug(f"MBTA: API request URL: '{url}'")
     logging.log(5,f"MBTA: API request headers: '{headers}'")
 
-
-    # Start the MQTT client. `loop_start()` runs a thread
-    # in the background handling this, so we can keep our
-    # main _recieve_ loop... looping.
+    # Create an MQTT client and setup connection
     mqttc = mqtt.Client(userdata=config)
-    mqttc.on_connect = mqtt_connect
-    mqttc.on_disconnect = mqtt_disconnect
-    mqttc.on_publish = mqtt_publish
-    try:
-        mqttc.connect(config['mqtt']['host'],
-                  port=config['mqtt']['port'],
-                  keepalive=config['mqtt']['keepalive'])
-    except OSError as ex:
-        logging.critical(f"Could not connect to MQTT Broker '{config['mqtt']['host']}:{config['mqtt']['port']}': {ex}")
-        exit(1)
-    mqttc.loop_start()
-    logging.log(15,f"MQTT client connected to '{config['mqtt']['host']}:{config['mqtt']['port']}'")
-
+    setup_mqtt(mqttc, config)
 
     # set ourselves as online
     mqttc.publish(topic=f"{config['mqtt']['prefix']}/status",payload="online",qos=1,retain=True).wait_for_publish()
@@ -222,13 +208,68 @@ def main():
     mqttc.disconnect()
     logging.log(25,f"::::: Exited cleanly.")
 
+# This function was taken from bkbilly's lnxlink project.
+# See https://github.com/bkbilly/lnxlink/blob/ab9f4577957be0acb1e6791c80895889a2bf8a92/lnxlink/__main__.py#L166
+def setup_mqtt(client, config):
+    client.on_connect = mqtt_connect
+    client.on_disconnect = mqtt_disconnect
+    client.on_publish = mqtt_publish
+
+    keyfile = config['mqtt']['auth']['keyfile']
+    keyfile = None if keyfile == "" else keyfile
+    certfile = config['mqtt']['auth']['certfile']
+    certfile = None if certfile == "" else certfile
+    ca_certs = config['mqtt']['auth']['ca_certs']
+    ca_certs = None if ca_certs == "" else ca_certs
+    use_cert = all(option is not None for option in [keyfile, certfile, ca_certs])
+    use_tls = config['mqtt']['auth']['tls']
+    username = config['mqtt']['auth']['user']
+    password = config['mqtt']['auth']['pass']
+    use_userpass = all(option != "" for option in [username, password])
+
+    if use_userpass:
+        client.username_pw_set(username, password)
+    if use_tls:
+        cert_reqs = ssl.CERT_NONE
+        if use_cert:
+            cert_reqs = ssl.CERT_REQUIRED
+        logging.log(25,f"Using MQTT ca_certs: {ca_certs}")
+        logging.log(25,f"Using MQTT certfile: {certfile}")
+        logging.log(25,f"Using MQTT keyfile: {keyfile}")
+        client.tls_set(
+            ca_certs=ca_certs,
+            certfile=certfile,
+            keyfile=keyfile,
+            cert_reqs=cert_reqs,
+        )
+        if ca_certs is None:
+            client.tls_insecure_set(True)
+
+    # Start the MQTT client. `loop_start()` runs a thread
+    # in the background handling this, so we can keep our
+    # main _recieve_ loop... looping.
+
+    try:
+        client.connect(config['mqtt']['host'],
+                       port=config['mqtt']['port'],
+                       keepalive=config['mqtt']['keepalive'])
+    except ssl.SSLCertVerificationError:
+        logger.log(25,"TLS not verified, using insecure connection instead")
+        client.tls_insecure_set(True)
+        client.connect(config['mqtt']['host'],
+                       port=config['mqtt']['port'],
+                       keepalive=config['mqtt']['keepalive'])
+    except OSError as ex:
+        logging.critical(f"Could not connect to MQTT Broker '{config['mqtt']['host']}:{config['mqtt']['port']}': {ex}")
+        exit(1)
+    client.loop_start()
+    logging.log(15,f"MQTT client connected to '{config['mqtt']['host']}:{config['mqtt']['port']}'")
 
 def load_config():
     """Loads `defaults.conf` and other files defined there,
        if any and if found.
     """
-
-
+    
     # First defaults, and then merge any others.
     # Since logging can be configured, there
     # is a chicken-and-egg thing so... 
@@ -240,7 +281,7 @@ def load_config():
     config['logger'] = {}
     config['logger']['version'] = 1
 
-    os.chdir(os.path.split(sys.argv[0])[0])
+    #os.chdir(os.path.split(sys.argv[0])[0])
     defaultfile="defaults.conf"
 
     # This lets us indicate environment variables in

@@ -44,7 +44,7 @@
                       example = ''
                         [ "110" "2168" "22549" ]
                       '';
-                      description = "A list of stops to monitor";
+                      description = "A list of stop IDs to monitor";
                     };
                   };
                   mqtt = {
@@ -75,7 +75,11 @@
                   }
                 }
               '';
-              description = "Settings to write to defaults.conf";
+              description = ''
+                Settings to write to /etc/mbta2mqtt/mbta2mqtt.conf.
+
+                All available options are listed on the project's [defaults.conf](https://github.com/negatethis/mbta2mqtt/raw/refs/heads/main/defaults.conf) file.
+              '';
             };
           };
 
@@ -104,7 +108,7 @@
 
               serviceConfig = {
                 Restart = "on-failure";
-                ExecStart = "${pkg}/bin/mbta2mqtt /etc/mbta2mqtt/mbta2mqtt.conf";
+                ExecStart = "${pkg}/bin/mbta2mqtt";
                 StandardOutput = "append:/var/log/mbta2mqtt/mbta2mqtt.log";
                 StandardError = "append:/var/log/mbta2mqtt/mbta2mqtt.log";
                 DynamicUser = "yes";
