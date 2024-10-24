@@ -108,6 +108,7 @@
 
               serviceConfig = {
                 Restart = "on-failure";
+                WorkingDirectory = "${pkg}/bin";
                 ExecStart = "${pkg}/bin/mbta2mqtt";
                 StandardOutput = "append:/var/log/mbta2mqtt/mbta2mqtt.log";
                 StandardError = "append:/var/log/mbta2mqtt/mbta2mqtt.log";
