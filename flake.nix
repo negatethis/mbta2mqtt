@@ -82,7 +82,7 @@
                                   "alerts"
                                   "alerts.facilities" ];
                       example = ''
-                        [ "schedule
+                        [ "schedule"
                           "stop"
                           "stop.connecting_stops"
                           "stop.child_stops"
@@ -172,7 +172,6 @@
               serviceConfig = {
                 ExecStart = "${pkg}/bin/mbta2mqtt";
                 DynamicUser = "yes";
-                WorkingDirectory = "${pkg}/bin";
                 StandardOutput = "append:/var/log/mbta2mqtt/mbta2mqtt.log";
                 StandardError = "append:/var/log/mbta2mqtt/mbta2mqtt.log";
                 Restart = "on-failure";

@@ -281,7 +281,7 @@ def load_config():
     config['logger'] = {}
     config['logger']['version'] = 1
 
-    #os.chdir(os.path.split(sys.argv[0])[0])
+    os.chdir(os.path.split(sys.argv[0])[0])
     defaultfile="defaults.conf"
 
     # This lets us indicate environment variables in
